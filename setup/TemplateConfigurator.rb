@@ -1,5 +1,5 @@
 require 'fileutils'
-require 'colored2'
+require 'colored'
 
 module Pod
   class TemplateConfigurator
@@ -35,7 +35,7 @@ module Pod
       print_info = Proc.new {
 
         possible_answers_string = possible_answers.each_with_index do |answer, i|
-           _answer = (i == 0) ? answer.underlined : answer
+           _answer = (i == 0) ? answer.underline : answer
            print " " + _answer
            print(" /") if i != possible_answers.length-1
         end
@@ -70,22 +70,21 @@ module Pod
     def run
       @message_bank.welcome_message
 
-      framework = self.ask_with_answers("What language do you want to use?", ["Swift", "ObjC"]).to_sym
+      framework = self.ask_with_answers("What language do you want to use?", ["ObjC", "Swift"]).to_sym
       case framework
         when :swift
           ConfigureSwift.perform(configurator: self)
-
+        
         when :objc
           ConfigureIOS.perform(configurator: self)
       end
+      
 
       replace_variables_in_files
       clean_template_files
       rename_template_files
       add_pods_to_podfile
       customise_prefix
-      rename_classes_folder
-      ensure_carthage_compatibility
       reinitialize_git_repo
       run_pod_install
 
@@ -93,10 +92,6 @@ module Pod
     end
 
     #----------------------------------------#
-
-    def ensure_carthage_compatibility
-      FileUtils.ln_s('Example/Pods/Pods.xcodeproj', '_Pods.xcodeproj')
-    end
 
     def run_pod_install
       puts "\nRunning " + "pod install".magenta + " on your new library."
@@ -111,7 +106,7 @@ module Pod
     end
 
     def clean_template_files
-      ["./**/.gitkeep", "configure", "_CONFIGURE.rb", "README.md", "LICENSE", "templates", "setup", "CODE_OF_CONDUCT.md"].each do |asset|
+      ["./**/.gitkeep", "configure", "_CONFIGURE.rb", "README.md", "LICENSE", "templates", "setup"].each do |asset|
         `rm -rf #{asset}`
       end
     end
@@ -150,7 +145,7 @@ module Pod
     def customise_prefix
       prefix_path = "Example/Tests/Tests-Prefix.pch"
       return unless File.exists? prefix_path
-
+      
       pch = File.read prefix_path
       pch.gsub!("${INCLUDED_PREFIXES}", @prefixes.join("\n  ") )
       File.open(prefix_path, "w") { |file| file.puts pch }
@@ -171,10 +166,6 @@ module Pod
       FileUtils.mv "NAME.podspec", "#{pod_name}.podspec"
     end
 
-    def rename_classes_folder
-      FileUtils.mv "Pod", @pod_name
-    end
-
     def reinitialize_git_repo
       `rm -rf .git`
       `git init`
@@ -188,13 +179,7 @@ module Pod
     #----------------------------------------#
 
     def user_name
-      (ENV['GIT_COMMITTER_NAME'] || github_user_name || `git config user.name` || `<GITHUB_USERNAME>` ).strip
-    end
-
-    def github_user_name
-      github_user_name = `security find-internet-password -s github.com | grep acct | sed 's/"acct"<blob>="//g' | sed 's/"//g'`.strip
-      is_valid = github_user_name.empty? or github_user_name.include? '@'
-      return is_valid ? nil : github_user_name
+      (ENV['GIT_COMMITTER_NAME'] || `git config user.name`).strip
     end
 
     def user_email

@@ -19,30 +19,30 @@ class TableOfContentsSpec: QuickSpec {
             it("will eventually fail") {
                 expect("time").toEventually( equal("done") )
             }
-            
-            context("these will pass") {
+        }
 
-                it("can do maths") {
-                    expect(23) == 23
+        context("these will pass") {
+
+            it("can do maths") {
+                expect(23) == 23
+            }
+
+            it("can read") {
+                expect("🐮") == "🐮"
+            }
+
+            it("will exentually pass") {
+                var time = "passing"
+
+                dispatch_async(dispatch_get_main_queue()) {
+                    time = "done"
                 }
 
-                it("can read") {
-                    expect("🐮") == "🐮"
-                }
+                waitUntil { done in
+                    NSThread.sleepForTimeInterval(0.5)
+                    expect(time) == "done"
 
-                it("will eventually pass") {
-                    var time = "passing"
-
-                    DispatchQueue.main.async {
-                        time = "done"
-                    }
-
-                    waitUntil { done in
-                        Thread.sleep(forTimeInterval: 0.5)
-                        expect(time) == "done"
-
-                        done()
-                    }
+                    done()
                 }
             }
         }

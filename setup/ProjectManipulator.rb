@@ -21,7 +21,7 @@ module Pod
       @string_replacements = {
         "PROJECT_OWNER" => @configurator.user_name,
         "TODAYS_DATE" => @configurator.date,
-        "TODAYS_YEAR" => @configurator.year,
+        "TODAYS_YEAR" => @configurator.date,
         "PROJECT" => @configurator.pod_name,
         "CPD" => @prefix
       }
@@ -44,8 +44,8 @@ module Pod
     end
 
     def remove_demo_project
-      app_project = @project.native_targets.find { |target| target.product_type == "com.apple.product-type.application" }
-      test_target = @project.native_targets.find { |target| target.product_type == "com.apple.product-type.bundle.unit-test" }
+      app_project = @project.targets.select { |target| target.product_type == "com.apple.product-type.application" }.first
+      test_target = @project.targets.select { |target| target.product_type == "com.apple.product-type.bundle.unit-test" }.first
       test_target.name = @configurator.pod_name + "_Tests"
 
       # Remove the implicit dependency on the app
@@ -70,16 +70,11 @@ module Pod
       `rm -rf templates/ios/Example/PROJECT`
       `rm -rf templates/swift/Example/PROJECT`
 
-      # Replace the Podfile with a simpler one with only one target
+      # Remove the section in the Podfile for the lib by removing top 3 lines after the source + using_frameworks!
       podfile_path = project_folder + "/Podfile"
-      podfile_text = <<-RUBY
-use_frameworks!
-target '#{test_target.name}' do
-  pod '#{@configurator.pod_name}', :path => '../'
-  
-  ${INCLUDED_PODS}
-end
-RUBY
+      podfile_lines = File.read(podfile_path).lines
+      3.times do  podfile_lines.delete_at 3 end
+      podfile_text = podfile_lines.join
       File.open(podfile_path, "w") { |file| file.puts podfile_text }
     end
 
